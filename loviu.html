@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE ETERNAL SYNC: FINAL BOSS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --pink: #ff4d94; --purple: #7a28ff; --cyan: #00f2ff; 
+            --dark: #050508; --gold: #ffd700; --red: #ff4444; 
+        }
+
+        * { box-sizing: border-box; }
+        body, html { 
+            margin: 0; padding: 0; background: var(--dark); 
+            color: white; font-family: 'Press Start 2P', cursive; 
+            overflow: hidden; height: 100vh; width: 100vw;
+        }
+
+        /* Scanlines Effect */
+        body::before {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%);
+            z-index: 1000; background-size: 100% 3px; pointer-events: none;
+        }
+
+        #game-container { 
+            display: flex; width: 1200px; height: 800px; 
+            background: #08080c; border: 6px solid #1a1a1a;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            box-shadow: 0 0 100px rgba(122, 40, 255, 0.2); overflow: hidden;
+        }
+
+        /* Sidebar Simplificado */
+        #sidebar { 
+            width: 320px; border-right: 4px solid #1a1a1a; 
+            display: flex; flex-direction: column; align-items: center; 
+            justify-content: space-around; padding: 40px 20px; background: #000; 
+        }
+
+        .profile-box { text-align: center; width: 100%; }
+        .char-name { font-size: 10px; margin-bottom: 15px; letter-spacing: 1px; }
+        #name-boy { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
+        #name-girl { color: var(--pink); text-shadow: 0 0 8px var(--pink); }
+
+        .side-char { 
+            width: 180px; height: 220px; object-fit: contain;
+            image-rendering: pixelated; transition: 2s; 
+        }
+        
+        /* Barra de Sincronización */
+        .sync-container { width: 100%; text-align: center; margin: 20px 0; }
+        .bar-container { width: 100%; height: 20px; background: #111; border: 2px solid #333; margin-top: 10px; }
+        #sync-fill { height: 100%; width: 0%; background: var(--cyan); box-shadow: 0 0 15px var(--cyan); transition: width 1s ease; }
+
+        /* Main Content */
+        #content { flex: 1; display: flex; flex-direction: column; position: relative; background: radial-gradient(circle, #0f0f1a 0%, #050508 100%); }
+        .screen { flex: 1; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; }
+        .active { display: flex; }
+
+        .narrative-text { font-size: 11px; line-height: 2.5; opacity: 0; transition: opacity 1s; margin: 15px 0; }
+        .visible { opacity: 1; }
+        .highlight { color: var(--pink); text-shadow: 0 0 10px var(--pink); }
+
+        /* Minijuego: Memorice */
+        #memory-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 360px; margin-top: 20px; }
+        .card { width: 80px; height: 100px; background: var(--purple); cursor: pointer; border: 2px solid #000; position: relative; transform-style: preserve-3d; transition: 0.5s; }
+        .card.flipped { transform: rotateY(180deg); }
+        .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .card-back { background: #222; transform: rotateY(180deg); }
+
+        /* Minijuego: Laberinto */
+        #maze { display: grid; grid-template-columns: repeat(8, 40px); gap: 2px; background: #333; padding: 5px; border: 3px solid var(--cyan); }
+        .m-cell { width: 40px; height: 40px; background: #000; }
+        .m-wall { background: #222; }
+        .m-player { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+        .m-goal { background: var(--pink); animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* Botones e Inputs */
+        .btn { background: transparent; color: white; border: 2px solid var(--pink); padding: 15px 30px; font-family: 'Press Start 2P'; cursor: pointer; font-size: 10px; margin-top: 30px; }
+        .btn:hover { background: var(--pink); color: #000; }
+        input { background: transparent; border: 2px solid var(--cyan); color: white; font-family: 'Press Start 2P'; padding: 15px; text-align: center; width: 80%; outline: none; margin-top: 20px; }
+
+        #valentine-card { background: white; color: #000; padding: 30px; border: 6px double var(--pink); width: 80%; display: none; font-family: 'Georgia', serif; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+<audio id="music" loop><source src="musica.mp3" type="audio/mpeg"></audio>
+
+<div id="game-container">
+    <aside id="sidebar">
+        <div class="profile-box">
+            <div class="char-name" id="name-boy">NAMELESS DEITY</div>
+            <img src="chico.png" id="p-chico" class="side-char">
+        </div>
+
+        <div class="sync-container">
+            <div style="font-size: 8px; color: var(--cyan);">SYNC LINK</div>
+            <div class="bar-container"><div id="sync-fill"></div></div>
+            <div id="sync-val" style="font-size: 8px; margin-top: 5px;">0%</div>
+        </div>
+
+        <div class="profile-box">
+            <img src="chica.png" id="p-chica" class="side-char" style="filter: grayscale(1) brightness(0.2);">
+            <div class="char-name" id="name-girl">ESDEATH</div>
+        </div>
+    </aside>
+
+    <main id="content">
+        <section id="sc-intro" class="screen active">
+            <div id="intro-text"></div>
+            <button class="btn" id="btn-start" style="display:none;" onclick="startJourney()">INICIAR CONEXIÓN</button>
+        </section>
+
+        <section id="sc-memory" class="screen">
+            <p style="font-size:10px; margin-bottom:20px;">PRUEBA 1: MEMORIA COMPARTIDA</p>
+            <div id="memory-board"></div>
+        </section>
+
+        <section id="sc-maze" class="screen">
+            <p style="font-size:10px; margin-bottom:20px;">PRUEBA 2: EL CAMINO DEL DESTINO</p>
+            <div id="maze"></div>
+        </section>
+
+        <section id="sc-final" class="screen">
+            <div id="final-narrative"></div>
+            <div id="valentine-card">
+                <p><strong>Incluso si el mundo se reinicia…</strong></p>
+                <p><strong>Incluso si pierdes todas tus almas…</strong></p>
+                <p><strong>Yo seguiría eligiéndote en cada partida.</strong></p>
+                <p style="text-align:right; margin-top:20px; font-size:20px;">❤️</p>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    const introLines = [
+        "En una tierra donde los guerreros solo confían en su espada…",
+        "caminaba uno que nunca temió a la oscuridad.",
+        "Derrotó bestias.",
+        "Sobrevivió a mundos infinitos.",
+        "Construyó fortalezas en piedra y pixel.",
+        "---",
+        "Pero el destino le susurró una verdad distinta…",
+        "No toda batalla se gana con fuerza.",
+        "Algunas… se ganan eligiendo quedarse.",
+        "---",
+        "Al final de esta mazmorra no te espera la muerte…",
+        "Te espera algo más peligroso.",
+        "<span class='highlight'>AMOR.</span>"
+    ];
+
+    async function writeSlowly(lines, targetId) {
+        const target = document.getElementById(targetId);
+        for (let line of lines) {
+            if (line === "---") { await new Promise(r => setTimeout(r, 1000)); continue; }
+            let p = document.createElement('p');
+            p.className = "narrative-text";
+            p.innerHTML = line;
+            target.appendChild(p);
+            setTimeout(() => p.classList.add('visible'), 50);
+            await new Promise(r => setTimeout(r, 2000)); // Pausa de 1s + lectura
+        }
+    }
+
+    function startJourney() {
+        document.getElementById('music').play();
+        showScreen('sc-memory');
+        initMemory();
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function updateSync(val) {
+        let current = parseInt(document.getElementById('sync-val').innerText);
+        current += val;
+        document.getElementById('sync-fill').style.width = current + "%";
+        document.getElementById('sync-val').innerText = current + "%";
+        if (current >= 100) {
+            document.getElementById('p-chica').style.filter = "drop-shadow(0 0 15px var(--pink))";
+        }
+    }
+
+    // MEMORY GAME
+    function initMemory() {
+        const icons = ['❤️', '⚔️', '⭐', '🎮', '❤️', '⚔️', '⭐', '🎮'];
+        const deck = icons.sort(() => Math.random() - 0.5);
+        let flipped = [];
+        deck.forEach(icon => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `<div class="card-front">?</div><div class="card-back">${icon}</div>`;
+            card.onclick = () => {
+                if (flipped.length < 2 && !card.classList.contains('flipped')) {
+                    card.classList.add('flipped');
+                    flipped.push(card);
+                    if (flipped.length === 2) {
+                        if (flipped[0].innerHTML === flipped[1].innerHTML) {
+                            flipped = [];
+                            if (document.querySelectorAll('.flipped').length === 8) {
+                                setTimeout(() => { updateSync(50); showScreen('sc-maze'); initMaze(); }, 1000);
+                            }
+                        } else {
+                            setTimeout(() => { flipped.forEach(c => c.classList.remove('flipped')); flipped = []; }, 800);
+                        }
+                    }
+                }
+            };
+            document.getElementById('memory-board').appendChild(card);
+        });
+    }
+
+    // MAZE GAME
+    function initMaze() {
+        const grid = [
+            [0,0,1,0,0,0,0,0], [1,0,1,0,1,1,1,0], [0,0,0,0,0,0,1,0], [0,1,1,1,1,0,1,0],
+            [0,0,0,0,1,0,0,0], [1,1,1,0,1,1,1,0], [0,0,0,0,0,0,0,0], [0,1,1,1,1,1,1,2]
+        ];
+        let p = {x:0, y:0};
+        const draw = () => {
+            const board = document.getElementById('maze');
+            board.innerHTML = '';
+            for(let y=0; y<8; y++) for(let x=0; x<8; x++){
+                const c = document.createElement('div');
+                c.className = 'm-cell' + (grid[y][x]===1?' m-wall':grid[y][x]===2?' m-goal':'');
+                if(x===p.x && y===p.y) c.classList.add('m-player');
+                board.appendChild(c);
+            }
+        };
+        window.onkeydown = (e) => {
+            let n = {x:p.x, y:p.y};
+            if(e.key==='ArrowUp') n.y--; if(e.key==='ArrowDown') n.y++;
+            if(e.key==='ArrowLeft') n.x--; if(e.key==='ArrowRight') n.x++;
+            if(n.x>=0 && n.x<8 && n.y>=0 && n.y<8 && grid[n.y][n.x]!==1) {
+                p = n; draw();
+                if(grid[p.y][p.x]===2) { 
+                    window.onkeydown = null; updateSync(50); 
+                    showScreen('sc-final'); 
+                    writeSlowly(["Sincronía completa.", "Abriendo núcleo de datos..."], 'final-narrative').then(() => {
+                        document.getElementById('valentine-card').style.display = 'block';
+                    });
+                }
+            }
+        };
+        draw();
+    }
+
+    window.onload = () => {
+        writeSlowly(introLines, 'intro-text').then(() => {
+            document.getElementById('btn-start').style.display = 'block';
+        });
+    };
+</script>
+</body>
+</html>
